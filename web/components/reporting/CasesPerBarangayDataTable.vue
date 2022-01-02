@@ -1,0 +1,109 @@
+<template>
+  <v-card>
+    <v-card-title class="font-weight-regular">
+      Number of Cases per Barangay
+      <v-spacer></v-spacer>
+      <v-text-field
+        append-icon="mdi-magnify"
+        v-model="search"
+        label="Search"
+        single-line
+        hide-details
+        clearable
+        flat
+        solo
+      ></v-text-field>
+      <v-menu offset-y>
+        <template v-slot:activator="{ on }">
+          <v-btn v-on="on" icon>
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list dense>
+          <v-list-item @click="exportCSV()">
+            <v-list-item-content>
+              <v-list-item-title>
+                Export to CSV
+              </v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+    </v-card-title>
+    <v-card-subtitle>
+      as of {{ `${formatDate(minDate ? new Date(minDate) : new Date)} to ${formatDate(maxDate ? new Date(maxDate) : new Date)}` }}
+    </v-card-subtitle>
+    <v-data-table
+      :search="search"
+      :headers="headers"
+      :items="casesPerBarangay"
+      multi-sort
+    ></v-data-table>
+  </v-card>
+</template>
+
+<script>
+import { mapGetters, mapState } from 'vuex'
+import { toCSV } from '../../utils/Util'
+
+export default {
+  methods: {
+    exportCSV () {
+      if (this.casesPerBarangay.length <= 0) {
+        return this.$helpers.notify({
+          type: 'info',
+          message: 'Could not export an empty data.'
+        })
+      }
+      
+      return toCSV(this.casesPerBarangay, 
+        `${this.diseaseName}: Cases Per Barangay as of ${this.formatDate(this.minDate)} to ${this.formatDate(this.maxDate)}`,
+        `${this.slugify(this.diseaseName)}-cases-per-barangay-${this.formatDate(this.minDate)}-to-${this.formatDate(this.maxDate)}`
+      )
+    },
+  },
+  
+  data: () => ({
+    search: '',
+    headers: [
+      {
+        text: 'Barangay',
+        value: 'barangay',
+        align: 'center',
+      },
+      {
+        text: 'Total Number of Cases',
+        value: 'cases',
+        align: 'center',
+      },
+      {
+        text: 'Alive',
+        value: 'alive',
+        align: 'center',
+      },
+      {
+        text: 'Died',
+        value: 'died',
+        align: 'center',
+      },
+      {
+        text: 'Unconfirmed',
+        value: 'unconfirmed',
+        align: 'center',
+      },
+    ]
+  }),
+  
+  computed:  {
+    ...mapState({
+      minDate: state => state.reports.result.min_date,
+      maxDate: state => state.reports.result.max_date,
+      diseaseName: state => state.diseases.disease.name
+    }),
+
+    ...mapGetters({
+      casesPerBarangay: 'reports/casesPerBarangay'
+    })
+  }
+}
+</script>
